@@ -12,26 +12,31 @@ using std::copy;
 #include <cstddef>   // std::ptrdiff_t
 #include <type_traits>
 
-namespace ls {
+#define DBG_PRINTLINE std::cout << __FILE__ << ":" << __LINE__ << std::endl
+
+namespace sc {
+    template<typename T>
+    class list;
     /** Node. */
     template<typename T>
     struct Node {
         T m_data;
-        Node* m_next;
         Node* m_prev;
-        Node(const T& data=T{}, Node* next=nullptr, Node* prev=nullptr)
-            : m_data{data}, m_next{next}, m_prev{prev}
+        Node* m_next;
+        Node(const T& data=T{}, Node* prev=nullptr, Node* next=nullptr)
+            : m_data{data}, m_prev{prev}, m_next{next}
         { }
     }; // struct Node
 
     /** Iterator para listas de nodes. */
     template<typename T>
     class Iterator {
+        friend list<T>;
         private:
             using node = Node<T>;
 
             /** Ponteiro para nó atual do iterador. */
-            node* m_ptr;
+            node* m_nodeptr;
 
         public:
             // Member types
@@ -40,45 +45,50 @@ namespace ls {
             using reference         = T&;
             using iterator_category = std::bidirectional_iterator_tag;
 
+            // Acessor 
+            const node* get_nodeptr() const {
+                return m_nodeptr;
+            }
+
             // Construtores
             /** Construtor regular. */
-            Iterator(const node* p = nullptr) 
-                : m_ptr(p) { };
+            explicit Iterator(node* p = nullptr) 
+                : m_nodeptr(p) { };
             /** Copy constructor */
             Iterator(const Iterator& other) {
-                m_ptr = other.m_ptr; 
+                m_nodeptr = other.m_nodeptr; 
             }
             /** Assignment operator. */
             Iterator& operator=(const Iterator& other) {
-                m_ptr = other.m_ptr;
+                m_nodeptr = other.m_nodeptr;
                 return *this; 
             }
 
             // Operadores unarios
             /** Operador de dereferencia. */
             reference operator*() const { 
-                return m_ptr->m_data; 
+                return m_nodeptr->m_data; 
             }
             /** Operacao de pre incremento `++it`. */
             Iterator& operator++() {
-                m_ptr = m_ptr->m_next;
+                m_nodeptr = m_nodeptr->m_next;
                 return *this; 
             }
             /** Operacao de pos incremento `it++`. */
             Iterator operator++(int) {
                 Iterator it_ret = *this;
-                (*this)++;
+                ++(*this);
                 return it_ret;
             }
             /** Operacao de pre decremento `--it`. */
             Iterator& operator--() {
-                m_ptr = m_ptr->m_prev;
+                m_nodeptr = m_nodeptr->m_prev;
                 return *this; 
             }
             /** Operacao de pos decremento `it--`. */
             Iterator operator--(int) {
-                Iterator it_ret = *this;
-                (*this)--;
+                Iterator it_ret{*this};
+                --(*this);
                 return it_ret;
             }
 
@@ -88,7 +98,7 @@ namespace ls {
              * @returns `true` quando os ponteiros contidos pelos iteradores sao iguais e `false` caso contrario.
              * */
             bool operator==(const Iterator& other) const {
-                return m_ptr == other.m_ptr; 
+                return m_nodeptr == other.m_nodeptr; 
             }
             /** Compara desigualdade de iteradores comparando seus ponteiros.
              *
@@ -143,26 +153,27 @@ namespace ls {
              *
              * @returns "casas" de distancia entre os iteradores dados
              */
-            friend difference_type operator-(const Iterator& it1, const Iterator& it2) { 
+            friend difference_type operator-(Iterator last, Iterator first) { 
                 difference_type ret = 0;
-                Iterator it = it1;
-                while (it++ != it2)
+                while (first++ != last)
                     ret++;
                 return ret;
             }
 
             node* nodeptr() {
-                return m_ptr;
+                return m_nodeptr;
             }
-    }; // class Iterator
+    };  // class Iterator
 
     template<typename T>
     class list {
         public:
             using size_type  = size_t;
             using value_type = T;
+            using reference  = T&;
             using node       = Node<T>;
             using iterator   = Iterator<T>;
+            using citerator  = Iterator<const T>;
 
         private:
             /** Tamanho da lista. */
@@ -173,46 +184,46 @@ namespace ls {
             node m_tail;
 
         public:
+            //
+            const node& head() {
+                return m_head;
+            }
+            const node& tail() {
+                return m_tail;
+            }
             /** Construtor regular. Constroi lista vazia. */
             list()
                 : m_size{0}
-                , m_head{node{value_type{}, &m_tail, nullptr}}
-                , m_tail{node{value_type{}, nullptr, &m_head}}
+                , m_head{node{value_type{}, nullptr, &m_tail}}
+                , m_tail{node{value_type{}, &m_head, nullptr}}
             { }
-            /** construtor que inicializa `count` elementos com `T{}` */
-            list(size_type count) : list() {
-                while (count > 0)
-                    insert(begin(), T{});
+            /** size */
+            size_type size() const {
+                return m_size;
             }
-            /** range constructor */
-            template<typename InputIt>
-            list(InputIt first, InputIt last)
-                : list()
-            {
-                while (first != last)
-                    insert(end(), *first++);
+            /** empty */
+            bool empty() const {
+                return size() == 0;
             }
-            /** copy constructor */
-            list(const list& other) 
-                : list(other.begin(), other.end())
-            { }
-
-
-
-
             /** begin */
             iterator begin() {
-                return iterator{m_head->m_next};
+                return iterator(m_head.m_next);
             }
             /** end */
             iterator end() {
                 return iterator{&m_tail};
             }
+            citerator cbegin() const {
+                return citerator{begin().get_nodeptr()};
+            }
+            citerator cend() const {
+                return citerator{end().get_nodeptr()};
+            }
             /** insert(pos, val) */
             iterator insert(iterator pos, const T& val) {
-                node* node_new = new node{val, pos.nodeptr(), (pos-1).nodeptr()};
-                pos->m_prev->m_next = node_new;
-                pos->m_ptr = node_new;
+                node* node_new = new node(val, (pos-1).m_nodeptr, pos.m_nodeptr);
+                (pos-1).m_nodeptr->m_next = node_new;
+                pos.m_nodeptr->m_prev = node_new;
                 m_size++;
                 return pos - 1;
             }
@@ -227,24 +238,7 @@ namespace ls {
                 m_size--;
                 return iterator{node_next};
             }
-            /** Destrutor. */
-            ~list() {
-                m_size = 0;
-                node* i = &m_head;
-                while (i != nullptr) {
-                    node* next = i->m_next;
-                    delete i;
-                    i = next;
-                }
-            }
-////            /** Acrescenta elemento no final da lista. */
- //           void push_back(const T& val) {
- //               node* node_new = new node{val, &m_tail, m_tail.prev};
- //               m_tail.m_prev->m_next = node_new;
- //               m_tail.m_prev = node_new;
- //               m_size++;
- //               return;
- //           }
+
     }; // class list
 } // namespace ls
 
