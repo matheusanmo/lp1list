@@ -212,6 +212,14 @@ namespace sc {
             { }
             /** copy constructor */
             list(list& other) : list(other.begin(), other.end()) { }
+            /** assignment operator */
+            list& operator=(const list& other) {
+                clear();
+                const_iterator it = other.cbegin();
+                while (it != other.cend())
+                    insert(cend(), *it++);
+                return *this;
+            }
             /** clear */
             void clear() {
                 while (begin() != end())
