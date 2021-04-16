@@ -95,18 +95,27 @@ namespace sc {
                         return i_old;
                     }
                     /** fwd jump */
-                    friend const_iterator operator+(const_iterator& it, difference_type di) {
+                    friend const_iterator operator+(const_iterator it, difference_type di) {
                         const_iterator i = it;
                         while (di-- > 0)
                             ++i;
                         return i;
                     }
                     /** bwd jump */
-                    friend const_iterator operator-(const_iterator& it, difference_type di) {
+                    friend const_iterator operator-(const_iterator it, difference_type di) {
                         const_iterator i = it;
                         while (di-- > 0)
                             --i;
                         return i;
+                    }
+                    /** difference */
+                    friend difference_type operator-(const_iterator lhs, const_iterator rhs) {
+                        difference_type d = 0;
+                        while (lhs != rhs) {
+                            d++;
+                            rhs++;
+                        }
+                        return d;
                     }
                     bool operator==(const const_iterator& rhs) const {
                         return m_nodeptr == rhs.m_nodeptr;
@@ -145,15 +154,18 @@ namespace sc {
                         this->m_nodeptr = this->m_nodeptr->m_next;
                         return *this;
                     }
+                    /** posincremento */
                     iterator operator++(int) {
                         iterator old = *this;
                         ++(*this);
                         return old;
                     }
+                    /** predecremento */
                     iterator& operator--() {
                         this->m_nodeptr = this->m_nodeptr->m_prev;
                         return *this;
                     }
+                    /** posdecremento */
                     iterator operator--(int) {
                         iterator old = *this;
                         --(*this);
@@ -173,9 +185,20 @@ namespace sc {
                             --i;
                         return i;
                     }
+                    /** difference */
+                    friend difference_type operator-(iterator lhs, iterator rhs) {
+                        difference_type d = 0;
+                        while (lhs != rhs) {
+                            d++;
+                            rhs++;
+                        }
+                        return d;
+                    }
+                    /** equality comparison */
                     bool operator==(iterator& rhs) const {
                         return this->m_nodeptr == rhs.m_nodeptr;
                     }
+                    /** inequality comparison */
                     bool operator!=(const iterator& rhs) const {
                         return this->m_nodeptr != rhs.m_nodeptr;
                 }
@@ -287,6 +310,106 @@ namespace sc {
                 m_size--;
                 return iterator{node_next};
             }
+            /** Push front */
+            void push_front(const T& val) {
+                insert(begin(), val);
+                return;
+            }
+            /** Push Back */
+            void push_back(const T& val) {
+                insert(end(), val);
+                return;
+            }
+            /** Pop back */
+            void pop_back() {
+                erase(--end());
+                return;
+            }
+            /** pop front */
+            void pop_front() {
+                erase(begin());
+                return;
+            }
+            /** const front */
+            const T& front() const {
+                return *cbegin();
+            }
+            /** front */
+            T& front() {
+                return *begin();
+            }
+            /** const back */
+            const T& back() const {
+                return *(--cend());
+            }
+            /** back */
+            T& back() {
+                return *(--end());
+            }
+            /** equality comparison */
+            bool operator==(const list& rhs) const {
+                if (size() != rhs.size())
+                    return false;
+                const_iterator i_rhs = rhs.cbegin();
+                for (const_iterator i_lhs = cbegin(); i_lhs != cend(); i_lhs++) {
+                    if (*i_lhs != *i_rhs++)
+                        return false;
+                }
+                return true;
+            }
+            /** inequality comparison */
+            bool operator!=(const list& rhs) const {
+                return !(*this == rhs);
+            }
+            /** range insert */
+            template<typename InputIt>
+            iterator insert(iterator pos, InputIt first, InputIt last) {
+                while (first != last) {
+                    pos = insert(pos, *first++);
+                    pos++;
+                }
+                return --pos;
+            }
+            /** const range insert */
+            template<typename InputIt>
+            const_iterator insert(const_iterator pos, InputIt first, InputIt last) {
+                while (first != last) {
+                    pos = insert(pos, *first++);
+                    pos++;
+                }
+                return --pos;
+            }
+            /** insert init list */
+            iterator insert(iterator pos, std::initializer_list<T> ilist) {
+                insert(pos, ilist.begin(), ilist.end());
+                return pos + (ilist.end() - ilist.begin());
+            }
+            /** const insert init list */
+            const_iterator insert(const_iterator pos, std::initializer_list<T> ilist) {
+                insert(pos, ilist.begin(), ilist.end());
+                return pos + (ilist.end() - ilist.begin());
+            }
+            /** erase range */
+            iterator erase(iterator first, iterator last) {
+                difference_type d = last - first;
+                iterator i = begin();
+                while (d > 0) {
+                    i = erase(i);
+                    d--;
+                }
+                return i;
+            }
+            /** const erase range */
+            const_iterator erase(const_iterator first, const_iterator last) {
+                difference_type d = last - first;
+                const_iterator i = begin();
+                while (d > 0) {
+                    i = erase(i);
+                    d--;
+                }
+                return i;
+            }
+
     }; // class list
 } // namespace ls
 
