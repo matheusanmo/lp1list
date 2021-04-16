@@ -36,26 +36,40 @@ namespace sc {
                     : m_data{data}, m_prev{prev}, m_next{next}
                 { }
             }; // struct node
+            /** Tamanho da lista. */
+            size_type m_size;
+            /** Head node. */
+            node* m_head;
+            /** Tail node. */
+            node* m_tail;
 
         public:
             /** Iterator para listas de nodes. */
             class const_iterator : public std::bidirectional_iterator_tag  {
+                public:
+                    typedef T              value_type;
+                    typedef std::ptrdiff_t difference_type;
+                    typedef T&             reference;
+                    typedef T*             pointer;
+
                 protected:
                     /** node apontado pelo iterador */
                     node* m_nodeptr;
+                    /* Construtor a partir de ponteiro para node */
+                    const_iterator(node* p) 
+                        : m_nodeptr(p) { }
                     friend class list;
 
                 public:
                     using iterator_category = std::bidirectional_iterator_tag;
-                    /* Construtor a partir de ponteiro para node */
-                    const_iterator(node * p=nullptr) 
-                        : m_nodeptr(p) { }
+                    /** Ctor vazio */
+                    const_iterator() : m_nodeptr(nullptr) { }
                     /** copy ctor */
                     const_iterator(const const_iterator&) = default;
                     /** dtor */
                     ~const_iterator() = default;
                     /** dereferencia */
-                    T& operator* () {
+                    const T& operator*() const {
                         return m_nodeptr->m_data;
                     }
                     /** preincremento */
@@ -94,23 +108,35 @@ namespace sc {
                             --i;
                         return i;
                     }
-                    bool operator==(const const_iterator& rhs) {
+                    bool operator==(const const_iterator& rhs) const {
                         return m_nodeptr == rhs.m_nodeptr;
                     }
-                    bool operator!=(const const_iterator& rhs) {
+                    bool operator!=(const const_iterator& rhs) const {
                         return m_nodeptr != rhs.m_nodeptr;
                 }
             }; //class const_iterator
 
             /** iterador nao constante */
             class iterator : public const_iterator {
+                public:
+                    typedef T              value_type;
+                    typedef std::ptrdiff_t difference_type;
+                    typedef T&             reference;
+                    typedef T*             pointer;
+
                 protected:
-                    explicit iterator(const_iterator cit) : const_iterator(cit.m_nodeptr) { }
+                    iterator(node* p) : const_iterator(p) { }
                     friend class list;
 
                 public:
                     using iterator_category = std::bidirectional_iterator_tag;
-                    iterator(node * nodeptr=nullptr) : const_iterator(nodeptr) { }
+                    /** empty ctor */
+                    /** dereferencia const */
+                    const T& operator*() const {
+                        return this->m_nodeptr->m_data;
+                    }
+                    iterator() : const_iterator() { }
+                    /** derefencia nao const */
                     T& operator*() {
                         return this->m_nodeptr->m_data;
                     }
@@ -147,20 +173,13 @@ namespace sc {
                             --i;
                         return i;
                     }
-                    bool operator==(iterator& rhs) {
+                    bool operator==(iterator& rhs) const {
                         return this->m_nodeptr == rhs.m_nodeptr;
                     }
-                    bool operator!=(const iterator& rhs) {
+                    bool operator!=(const iterator& rhs) const {
                         return this->m_nodeptr != rhs.m_nodeptr;
                 }
             }; // class iterator
-
-            /** Tamanho da lista. */
-            size_type m_size;
-            /** Head node. */
-            node* m_head;
-            /** Tail node. */
-            node* m_tail;
 
         public:
             /** Construtor regular. Constroi lista vazia. */
@@ -169,6 +188,12 @@ namespace sc {
                 m_head = new node(value_type{}, nullptr, nullptr);
                 m_tail = new node(value_type{}, m_head, nullptr);
                 m_head->m_next = m_tail;
+            }
+            /** destrutor */
+            ~list() {
+                clear();
+                delete m_head;
+                delete m_tail;
             }
             /** size constructor */
             explicit list(size_type size) : list() {
@@ -187,23 +212,17 @@ namespace sc {
             { }
             /** copy constructor */
             list(list& other) : list(other.begin(), other.end()) { }
-            /** destrutor */
-            ~list() {
-                clear();
-                delete m_head;
-                delete m_tail;
-            }
             /** clear */
             void clear() {
                 while (begin() != end())
                     erase(begin());
             }
             /** size */
-            size_type size() {
+            size_type size() const {
                 return m_size;
             }
             /** empty */
-            bool empty() {
+            bool empty() const {
                 return size() == 0;
             }
             /** begin */
@@ -215,11 +234,11 @@ namespace sc {
                 return iterator(m_tail);
             }
             /** cbegin */
-            const_iterator cbegin() {
+            const_iterator cbegin() const {
                 return const_iterator(m_head->m_next);
             }
             /** cend */
-            const_iterator cend() {
+            const_iterator cend() const {
                 return const_iterator(m_tail);
             }
             /** insert(pos, val) */
@@ -241,7 +260,25 @@ namespace sc {
                 m_size--;
                 return const_iterator{node_next};
             }
-
+            /** insert(pos, val) */
+            iterator insert(iterator pos, const T& val) {
+                node* node_new = new node(val, (pos-1).m_nodeptr, pos.m_nodeptr);
+                (pos-1).m_nodeptr->m_next = node_new;
+                pos.m_nodeptr->m_prev = node_new;
+                m_size++;
+                return pos - 1;
+            }
+            /** erase pos, retorna ponteiro para quem seria pos+1 */
+            iterator erase(iterator pos) {
+                node* node_deleted = pos.m_nodeptr;
+                node* node_next    = (pos+1).m_nodeptr;
+                node* node_prev    = (pos-1).m_nodeptr;
+                node_next->m_prev = node_prev;
+                node_prev->m_next = node_next;
+                delete node_deleted;
+                m_size--;
+                return iterator{node_next};
+            }
     }; // class list
 } // namespace ls
 
