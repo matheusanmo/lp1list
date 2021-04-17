@@ -5,6 +5,8 @@
 using std::cout;
 using std::endl;
 
+#include <sstream>
+
 #include <iterator>  // bidirectional_iterator_tag
 #include <cassert>   // assert()
 #include <algorithm> // copy
@@ -382,34 +384,38 @@ namespace sc {
             /** insert init list */
             iterator insert(iterator pos, std::initializer_list<T> ilist) {
                 insert(pos, ilist.begin(), ilist.end());
-                return pos + (ilist.end() - ilist.begin());
+                return pos;
             }
             /** const insert init list */
             const_iterator insert(const_iterator pos, std::initializer_list<T> ilist) {
                 insert(pos, ilist.begin(), ilist.end());
-                return pos + (ilist.end() - ilist.begin());
+                return pos;
             }
             /** erase range */
             iterator erase(iterator first, iterator last) {
-                difference_type d = last - first;
-                iterator i = begin();
-                while (d > 0) {
-                    i = erase(i);
-                    d--;
-                }
-                return i;
+                iterator ret = first;
+                while (first != last)
+                    first = erase(first);
+                return ret;
             }
             /** const erase range */
             const_iterator erase(const_iterator first, const_iterator last) {
-                difference_type d = last - first;
-                const_iterator i = begin();
-                while (d > 0) {
-                    i = erase(i);
-                    d--;
-                }
-                return i;
+                iterator ret = first;
+                while (first != last)
+                    first = erase(first);
+                return ret;
             }
-
+            /** to string */
+            string to_string() const {
+                std::ostringstream oss;
+                oss << "<list m_size=" << m_size << ", data={ ";
+                const_iterator i{};
+                for (i = cbegin(); i+1 != cend(); i++) {
+                    oss << *i << ", ";
+                }
+                oss << *i << " }>";
+                return oss.str();
+            }
     }; // class list
 } // namespace ls
 
