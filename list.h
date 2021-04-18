@@ -136,6 +136,10 @@ namespace sc {
                     typedef T*             pointer;
 
                 protected:
+                    /** referencia para o node apontado pelo iterador */
+                    node& get_node() {
+                        return *m_nodeptr;
+                    }
                     iterator(node* p) : const_iterator(p) { }
                     friend class list;
 
@@ -415,6 +419,59 @@ namespace sc {
                 }
                 oss << *i << " }>";
                 return oss.str();
+            }
+            /** in place sort */
+            void sort() {
+                merge_sort(begin(), end());
+            }
+        private:
+            /** in place merge sort no intervalo `[first, last)`. */
+            void merge_sort(iterator first, iterator last) {
+                if (last - first < 2)
+                    return;
+                iterator midpoint = first + ((last - first) / 2);
+                merge_sort(first, midpoint);
+                merge_sort(midpoint, last);
+                merge_sort_merge(first, midpoint, last);
+                return;
+            }
+            /** Recebe dois intervalos `[f_a, l_a)` e `[f_b, l_b)` e substitui um 
+             * pelo outro em suas respectivas listas. Esta operacao eh O(1) pois apenas
+             * "redireciona" os nodes adequadamente in place.
+             *
+             * @param   f_a iterator para primeiro elemendo da subslista `a`.
+             * @param   l_a iterator para alem do ultimo elemento da sublista `a`.
+             * @param   f_b iterator para primeiro elemento da sublista `b`.
+             * @param   l_b iterator para alem do ultimo elemento da sublista `b`.
+             */
+            static void swap_sublists(iterator f_a, iterator l_a, iterator f_b, iterator l_b) {
+                std::swap(f_a.get_node(), f_b.get_node());
+                std::swap(l_a.get_node(), l_b.get_node());
+                return;
+            }
+
+            /** merge sort worker */
+            void merge_sort_merge(iterator first, iterator midpoint, iterator last) {
+                list sorted{};
+                iterator left = first;
+                iterator right = midpoint;
+                while (true) {
+                    if (left == midpoint) {
+                        sorted.insert(sorted.end(), right, last);
+                        break; 
+                    }
+                    else if (right == last) {
+                        sorted.insert(sorted.end(), left, midpoint);
+                        break;
+                    }
+                    else if (*left < *right) {
+                        sorted.push_back(*right++)
+                    } else {
+                        sorted.push_back(*left++);
+                    }
+                }
+                swap_sublists(first, last, sorted.begin(), sorted.end());
+                return;
             }
     }; // class list
 } // namespace ls
